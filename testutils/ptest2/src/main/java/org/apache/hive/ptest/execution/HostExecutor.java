@@ -55,30 +55,29 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-class HostExecutor {
-  private final Host mHost;
+public class HostExecutor {
+  protected final Host mHost;
   private final List<Drone> mDrones;
-  private final ListeningExecutorService mExecutor;
-  private final SSHCommandExecutor mSSHCommandExecutor;
-  private final RSyncCommandExecutor mRSyncCommandExecutor;
-  private final ImmutableMap<String, String> mTemplateDefaults;
-  private final Logger mLogger;
-  private final File mLocalScratchDirectory;
-  private final File mSuccessfulTestLogDir;
-  private final File mFailedTestLogDir;
-  private final long mNumPollSeconds;
-  private final boolean fetchLogsForSuccessfulTests;
-  private volatile boolean mShutdown;
-  private int numParallelBatchesProcessed = 0;
-  private int numIsolatedBatchesProcessed = 0;
-  private AtomicLong totalElapsedTimeInRsync = new AtomicLong(0L);
+  protected final ListeningExecutorService mExecutor;
+  protected final SSHCommandExecutor mSSHCommandExecutor;
+  protected final RSyncCommandExecutor mRSyncCommandExecutor;
+  protected final ImmutableMap<String, String> mTemplateDefaults;
+  protected final String mPrivateKey;
+  protected final Logger mLogger;
+  protected final File mLocalScratchDirectory;
+  protected final File mSuccessfulTestLogDir;
+  protected final File mFailedTestLogDir;
+  protected final long mNumPollSeconds;
+  protected final boolean fetchLogsForSuccessfulTests;
+  protected volatile boolean mShutdown;
+  protected int numParallelBatchesProcessed = 0;
+  protected int numIsolatedBatchesProcessed = 0;
+  protected AtomicLong totalElapsedTimeInRsync = new AtomicLong(0L);
   
-  HostExecutor(Host host, String privateKey, ListeningExecutorService executor,
-      SSHCommandExecutor sshCommandExecutor,
-      RSyncCommandExecutor rsyncCommandExecutor,
-      ImmutableMap<String, String> templateDefaults, File scratchDir,
-      File succeededLogDir, File failedLogDir, long numPollSeconds,
-      boolean fetchLogsForSuccessfulTests, Logger logger) {
+  protected HostExecutor(Host host, String privateKey, ListeningExecutorService executor,
+      SSHCommandExecutor sshCommandExecutor, RSyncCommandExecutor rsyncCommandExecutor,
+      ImmutableMap<String, String> templateDefaults, File scratchDir, File succeededLogDir,
+      File failedLogDir, long numPollSeconds, boolean fetchLogsForSuccessfulTests, Logger logger) {
     List<Drone> drones = Lists.newArrayList();
     String[] localDirs = host.getLocalDirectories();
     for (int index = 0; index < host.getThreads(); index++) {
@@ -87,6 +86,7 @@ class HostExecutor {
     }
     mShutdown = false;
     mHost = host;
+    mPrivateKey = privateKey;
     mDrones = new CopyOnWriteArrayList<Drone>(drones);
     mExecutor = executor;
     mSSHCommandExecutor = sshCommandExecutor;
@@ -103,7 +103,7 @@ class HostExecutor {
   /**
    * @return failed tests
    */
-  ListenableFuture<Void> submitTests(final BlockingQueue<TestBatch> parallelWorkQueue,
+  protected ListenableFuture<Void> submitTests(final BlockingQueue<TestBatch> parallelWorkQueue,
       final BlockingQueue<TestBatch> isolatedWorkQueue, final Set<TestBatch> failedTestResults) {
     return mExecutor.submit(new Callable<Void>() {
       @Override
@@ -152,7 +152,7 @@ class HostExecutor {
    * leaving this host with zero functioning drones. If all drones
    * are removed the host will be replaced before the next run.
    */
-  private void executeTests(final BlockingQueue<TestBatch> parallelWorkQueue,
+  protected void executeTests(final BlockingQueue<TestBatch> parallelWorkQueue,
       final BlockingQueue<TestBatch> isolatedWorkQueue, final Set<TestBatch> failedTestResults)
           throws Exception {
     if(mShutdown) {
